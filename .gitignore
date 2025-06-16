@@ -1,0 +1,67 @@
+# Node modules - تجاهل كل مجلدات node_modules
+**/node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# نظام التشغيل
+.DS_Store
+Thumbs.db
+
+# مجلدات البناء (Build output)
+**/dist/
+**/build/
+**/out/
+
+# ملفات البيئة - environment variables
+.env
+.env.local
+.env.*.local
+
+# ملفات التغطية (coverage reports)
+coverage/
+**/coverage/
+
+# ملفات ال IDE أو المحرر
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ملفات النظام المؤقتة
+*.swp
+*.lock
+*.tmp
+
+# ملفات التوثيق المؤقتة
+*.log
+
+# ملفات القفل الخاصة بالباكيج
+package-lock.json
+yarn.lock
+
+# ملفات المصادقة المؤقتة أو الجلسات
+*.pem
+*.key
+
+# ملفات الكاش
+.cache/
+.next/
+.nuxt/
+.svelte-kit/
+
+# مجلدات أخرى غير مهمة شائعة
+bower_components/
+
+# ملفات ال Docker (لو عندك)
+docker-compose.override.yml
+
+# ملفات خاصة بالاختبارات (لو تستخدم Jest أو غيره)
+jest.config.js
+
