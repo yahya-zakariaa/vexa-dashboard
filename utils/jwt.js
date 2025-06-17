@@ -9,7 +9,7 @@ export const generateTokens = async (userId, role) => {
       { userId, role },
       process.env.ACCESS_TOKEN_SECRET,
       {
-        expiresIn: "1h",
+        expiresIn: "6h",
       }
     );
     const refresh_token = jwt.sign(
@@ -43,18 +43,17 @@ export const deleteTokens = async (userId) => {
 };
 
 export const setCookies = (res, access_token, refresh_token) => {
-  const isProduction = process.env.NODE_ENV === "production";
 
   res.cookie("access_token", access_token, {
     httpOnly: true,
-    sameSite: "Lax",
+    sameSite: "None",
     secure: process.env.NODE_ENV === "production",
     maxAge: 1000 * 60 * 60 * 3,
   });
 
   res.cookie("refresh_token", refresh_token, {
     httpOnly: true,
-    sameSite: "Lax",
+    sameSite: "None",
     secure: process.env.NODE_ENV === "production",
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
   });
