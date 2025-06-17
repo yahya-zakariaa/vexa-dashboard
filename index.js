@@ -18,11 +18,16 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-app.use(bodyParser.json({ limit: "20mb" })); 
+app.use(bodyParser.json({ limit: "20mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "20mb" }));
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://vexa-dashboard.vercel.app"],
+    credentials: true,
+  })
+);
 
 // routes
 app.use("/api/auth", authRoutes);
@@ -35,7 +40,7 @@ app.use("/api/cart", cartRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error("global error:",err.message);
+  console.error("global error:", err.message);
   res.status(500).json({ status: "error", message: "Internal Server Error" });
 });
 
