@@ -24,7 +24,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://vexa-dashboard.vercel.app"],
+    origin: ["http://localhost:3000", "https://vexa-dashboard.vercel.app"],
     credentials: true,
   })
 );
