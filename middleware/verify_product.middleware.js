@@ -30,20 +30,19 @@ export const verify_product = async (req, res, next) => {
       discount,
       discountType,
     } = req.body;
-   if (discountType && !discount) {
-  return res.status(400).json({
-    status: "fail",
-    message: "Can't add discount type without discount amount",
-  });
-}
+    if (discountType && !discount) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Can't add discount type without discount amount",
+      });
+    }
 
-if (discount && !discountType) {
-  return res.status(400).json({
-    status: "fail",
-    message: "Can't add discount amount without discount type",
-  });
-}
-
+    if (discount && !discountType) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Can't add discount amount without discount type",
+      });
+    }
 
     price = Number(price);
     stock = Number(stock);
@@ -111,32 +110,25 @@ if (discount && !discountType) {
       }
     }
 
-    sizes = JSON.parse(sizes);
-    const allowedSizes = ["XS", "S", "M", "L", "XL", "XXL"];
-    const sizesKeys = Object.keys(sizes);
-    const allValidSizes = sizesKeys.every((key) => allowedSizes.includes(key));
-    const allBoolean = Object.values(sizes).every(
-      (v) => typeof v === "boolean"
-    );
+    try {
+      if (typeof sizes === "string") sizes = JSON.parse(sizes);
+    } catch (e) {
+      return res.status(400).json({ message: "Sizes must be a valid array" });
+    }
 
-    if (!allValidSizes || !allBoolean) {
+    const allowedSizes = ["XS", "S", "M", "L", "XL", "XXL"];
+
+    if (
+      !Array.isArray(sizes) ||
+      sizes.length === 0 ||
+      !sizes.every((s) => allowedSizes.includes(s))
+    ) {
       return res.status(400).json({
-        message:
-          "Sizes must only contain XS, S, M, L, XL, XXL with boolean values",
+        message: "Sizes must be a non-empty array of: XS, S, M, L, XL, XXL",
       });
     }
 
-    const selectedSizes = Object.entries(sizes)
-      .filter(([_, value]) => value)
-      .map(([key]) => key);
-
-    if (selectedSizes.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "At least one size must be selected" });
-    }
-
-    req.body.sizes = selectedSizes;
+    req.body.sizes = sizes;
 
     req.body.category = category;
     console.log(" end verify_product");

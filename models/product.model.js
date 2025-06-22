@@ -17,13 +17,12 @@ const productSchema = new mongoose.Schema(
       trim: true,
     },
 
-    // Media & Visuals
+    // Media
     images: {
       type: [String],
-      required: [true],
+      required: [true, "At least one image is required"],
       validate: [(array) => array.length > 0, "At least one image is required"],
     },
-
     // Pricing & Sales
     price: {
       type: Number,
@@ -45,6 +44,11 @@ const productSchema = new mongoose.Schema(
         message: "Discount must be > 0 when product is on sale",
       },
       default: 0,
+    },
+    discountType: {
+      type: String,
+      enum: ["percentage", "fixed", ""],
+      default: "",
     },
     totalPrice: {
       type: Number,
@@ -125,7 +129,7 @@ const productSchema = new mongoose.Schema(
 productSchema.pre("save", function (next) {
   try {
     this.calculateTotalPrice();
-    this.checkAvailability();
+    // this.checkAvailability();
     if (this.avgRating < 0 || this.avgRating > 5) {
       throw new Error("Average rating must be between 0 and 5");
     }
@@ -151,19 +155,22 @@ productSchema.pre("findOneAndUpdate", async function (next) {
         ? update.discount
         : (await this.model.findOne(this.getQuery())).discount;
     update.totalPrice = price * (1 - discount / 100);
-    this.totalPrice = Number(Math.max(this.totalPrice, 0).toFixed(0));
+    update.totalPrice = Number(Math.max(update.totalPrice, 0).toFixed(0));
   }
 
-  if (update.stock !== undefined) {
-    update.availability = update.stock > 0;
-  }
+  // if (update.stock !== undefined) {
+  //   update.availability = update.stock > 0;
+  // }
   next();
 });
 
 // Helper methods
 productSchema.methods.calculateTotalPrice = function () {
-  this.totalPrice = this.price * (1 - this.discount / 100);
-  this.totalPrice = Number(Math.max(this.totalPrice, 0).toFixed(0));
+  const discount = Math.min(Math.max(this.discount || 0, 0), 100);
+  const price = Number(this.price || 0);
+  this.totalPrice = Number(
+    Math.max(price * (1 - discount / 100), 0).toFixed(0)
+  );
 };
 
 productSchema.methods.checkAvailability = function () {

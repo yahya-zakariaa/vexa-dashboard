@@ -43,7 +43,7 @@ const createProduct = async (req, res, next) => {
     const product = await Product.create({
       name: name?.trim(),
       description: description,
-      price: parseFloat(price)?.toFixed(2),
+      price: parseInt(price)?.toFixed(0),
       category,
       images: uploadedImages,
       stock: parseInt(stock),
@@ -122,6 +122,7 @@ const getProduct = async (req, res, next) => {
     return next(error);
   }
 };
+
 const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -130,7 +131,6 @@ const updateProduct = async (req, res, next) => {
       description,
       price,
       category,
-      images,
       stock,
       sizes,
       gender,
@@ -140,37 +140,85 @@ const updateProduct = async (req, res, next) => {
     } = req.body;
 
     console.log(req.body);
+    if (!id) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Missing product ID in URL",
+      });
+    }
 
-    const validatedDiscount = Math.min(Math.max(discount || 0, 0), 100);
-
-    if (category) {
-      let existingCategory = await Category.findOne({ name: category });
-      if (!existingCategory) {
-        const newCategory = await Category.create({ name: category });
-        category = newCategory._id.toString();
-      } else {
-        category = existingCategory._id.toString();
+    try {
+      if (typeof sizes === "string") sizes = JSON.parse(sizes);
+      if (typeof images === "string") images = JSON.parse(images);
+    } catch (err) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Invalid JSON in sizes or images",
+      });
+    }
+    if (req.body.images) {
+      if (!Array.isArray(req.body.images)) {
+        return res.status(400).json({
+          status: "faild",
+          message: "images must be an array",
+        });
+      }
+    } else if (req.files) {
+      if (!Array.isArray(req.files)) {
+        return res.status(400).json({
+          status: "faild",
+          message: "images must be an array",
+        });
       }
     }
 
+    if (typeof req.body.images === "string") {
+      req.body.images = JSON.parse(req.body.images);
+    }
+
+    const oldImageUrls = Array.isArray(req.body.images) ? req.body.images : [];
+
+    const uploadedImages = [];
+
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const url = await uploadToCloudinary(file.buffer);
+        uploadedImages.push(url);
+      }
+    }
+
+    const finalImages = [...oldImageUrls, ...uploadedImages];
+
     const updateData = {};
 
-    if (name !== undefined) updateData.name = name.trim();
-    if (description !== undefined) updateData.description = description.trim();
-    if (price !== undefined)
-      updateData.price = Number(parseFloat(price).toFixed(2));
-    if (category) updateData.category = category;
-    if (images !== undefined)
-      updateData.images = Array.isArray(images)
-        ? images.map((img) => img.trim())
-        : [];
-    if (stock !== undefined) updateData.stock = parseInt(stock);
-    if (sizes !== undefined) updateData.sizes = sizes;
-    if (gender !== undefined) updateData.gender = gender;
-    updateData.discount = validatedDiscount;
-    if (discountType !== undefined) updateData.discountType = discountType;
-    if (availability !== undefined) updateData.availability = !!availability;
+    if (typeof name === "string") updateData.name = name.trim();
+    if (typeof description === "string")
+      updateData.description = description.trim();
+    if (!isNaN(price)) updateData.price = Number(parseFloat(price).toFixed(0));
+    if (typeof category === "string") updateData.category = category;
+    if (!isNaN(stock)) updateData.stock = parseInt(stock);
+    if (Array.isArray(sizes)) updateData.sizes = sizes;
+    if (typeof gender === "string") updateData.gender = gender;
+    if (discount) {
+      const validatedDiscount = Math.min(Math.max(discount || 0, 0), 100);
+      updateData.discount = validatedDiscount;
+    }
+    if (discountType) updateData.discountType = discountType;
+    if (availability !== undefined) {
+      updateData.availability =
+        availability === "true" || availability === true;
+    }
 
+    if (finalImages.length > 0) {
+      updateData.images = finalImages;
+    }
+
+    console.log(updateData);
+    if (Object.keys(updateData).length < 1)
+      return res.status(400).json({
+        status: "fail",
+        message: "No changes to update",
+      });
     const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
       new: true,
     });
@@ -181,12 +229,16 @@ const updateProduct = async (req, res, next) => {
         message: "Product not found",
       });
     }
-
+    const validatedDiscount = Math.min(
+      Math.max(updatedProduct.discount || 0, 0),
+      100
+    );
     updatedProduct.totalPrice = updatedProduct.calculateTotalPrice(
       updatedProduct.price,
       validatedDiscount
     );
     await updatedProduct.save();
+    console.log("product updated");
 
     return res.status(200).json({
       status: "success",
@@ -197,6 +249,7 @@ const updateProduct = async (req, res, next) => {
     return next(error);
   }
 };
+
 const deleteProduct = async (req, res, next) => {
   try {
     const { id } = req.params;

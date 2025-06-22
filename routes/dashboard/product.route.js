@@ -27,7 +27,11 @@ router
   .get(getProducts)
   .delete(deleteProducts);
 
-router.route("/:id").get(getProduct).patch(updateProduct).delete(deleteProduct);
+router
+  .route("/:id")
+  .get(getProduct)
+  .patch(upload.array("files", 5), updateProduct)
+  .delete(deleteProduct);
 
 // Search Routes
 router.route("/search").get(searchProducts);

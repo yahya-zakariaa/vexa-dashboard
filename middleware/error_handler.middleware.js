@@ -1,5 +1,6 @@
 export const errorHandler = (err, req, res, next) => {
   console.log("error middleWare:", err);
+
   if (err.name === "CastError") {
     return res.status(400).json({
       status: "error",
@@ -11,7 +12,7 @@ export const errorHandler = (err, req, res, next) => {
     const messages = Object.values(err.errors).map((val) => val.message);
     return res.status(400).json({
       status: "error",
-      message: messages.join(", "),
+      message: messages.join(", "), // ← important!
     });
   }
 
