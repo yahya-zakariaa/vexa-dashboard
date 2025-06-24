@@ -23,7 +23,7 @@ router.use(check_auth("admin"));
 // Main Product Routes
 router
   .route("/")
-  .post(upload.array("images", 5), verify_product, createProduct)
+  .post(upload.array("files", 5), verify_product, createProduct)
   .get(getProducts)
   .delete(deleteProducts);
 

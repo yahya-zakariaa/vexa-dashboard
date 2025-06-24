@@ -137,19 +137,19 @@ const updateProduct = async (req, res, next) => {
       discount,
       discountType,
       availability,
-    } = req.body;
-
+    } = req.body; 
     console.log(req.body);
+    
     if (!id) {
       return res.status(400).json({
         status: "fail",
         message: "Missing product ID in URL",
       });
     }
-
+    
     try {
-      if (typeof sizes === "string") sizes = JSON.parse(sizes);
-      if (typeof images === "string") images = JSON.parse(images);
+      if (typeof sizes === "string" && sizes !== undefined) sizes = JSON.parse(sizes);
+      if (typeof images === "string" && images !== undefined) images = JSON.parse(images);
     } catch (err) {
       return res.status(400).json({
         status: "failed",

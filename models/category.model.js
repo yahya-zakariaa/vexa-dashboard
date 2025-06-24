@@ -4,11 +4,10 @@ const categorySchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Name is required"],
-      maxLength: [20, "Name must be at most 20 characters"],
-      minlength: [3, "Name must be at least 3 characters"],
-      unique: true,
+      required: [true, "Category name is required"],
       trim: true,
+      unique: true,
+      maxlength: 30,
     },
     slug: {
       type: String,
@@ -16,42 +15,44 @@ const categorySchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
-    image: {
-      type: String,
-      default:
-        "https://cdn-icons-png.freepik.com/512/5323/5323547.png?ga=GA1.1.1674416738.1740668832",
+    images: {
+      type: [String],
+      default: [],
+      required: [true, "At least one image is required"],
+      validate: [(array) => array.length > 0, "At least one image is required"],
+    },
+    salesCount: {
+      type: Number,
+      default: 0,
+    },
+    avgPrice: {
+      type: Number,
+      default: 0,
     },
     isActive: {
       type: Boolean,
       default: true,
     },
-    isFeatured: {
-      type: Boolean,
-      default: false,
-    },
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
+// Virtuals
 categorySchema.virtual("products", {
   ref: "Product",
   localField: "_id",
   foreignField: "category",
   justOne: false,
 });
-categorySchema.virtual("productCount", {
+
+categorySchema.virtual("productsCount", {
   ref: "Product",
   localField: "_id",
   foreignField: "category",
   count: true,
 });
 
-categorySchema.index({ name: 1, active: 1 });
+// Indexing
+categorySchema.index({ name: 1, isActive: 1, slug: 1 });
 
 export const Category = mongoose.model("Category", categorySchema);

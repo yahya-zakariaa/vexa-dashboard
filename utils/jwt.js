@@ -38,7 +38,7 @@ export const generateTokens = async (userId, role) => {
 };
 
 export const deleteTokens = async (userId) => {
-  await redis.del(`admin_token:${userId}`);
+  await redis.del(`access_token:${userId}`);
   await redis.del(`refresh_token:${userId}`);
 };
 

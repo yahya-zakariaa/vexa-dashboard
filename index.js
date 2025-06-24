@@ -40,7 +40,7 @@ app.use("/api/cart", cartRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error("global error:", err.message);
+  console.error("global error:", err);
   res.status(500).json({ status: "error", message: "Internal Server Error" });
 });
 
