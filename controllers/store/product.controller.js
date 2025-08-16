@@ -1,45 +1,66 @@
 import { Product } from "../../models/product.model.js";
-import Review from "../../models/reviews.model.js";
 
 const getProducts = async (req, res, next) => {
-  const { limit = 10, page = 1, category, q } = req.query;
-
+  const {
+    limit = 12,
+    page = 1,
+    collection,
+    search,
+    sort = "newest",
+    minPrice,
+    maxPrice,
+    gender,
+    sizes,
+    onSale,
+  } = req.query;
   const skip = (page - 1) * limit;
+  console.log(limit);
 
   const query = {
     stock: { $gte: 0 },
   };
-
-  if (q) {
-    query.name = { $regex: q, $options: "i" };
+  if (search) {
+    query.name = { $regex: search, $options: "i" };
   }
-
-  if (category) {
-    query.category = category;
+  if (gender) query.gender = gender;
+  if (onSale) query.onSale = onSale === "true";
+  if (minPrice || maxPrice) {
+    query.price = {};
+    if (minPrice) query.price.$gte = Number(minPrice);
+    if (maxPrice) query.price.$lte = Number(maxPrice);
   }
-
+  if (collection) {
+    query.collection = collection;
+  }
+  if (sizes) {
+    query.sizes = { $in: Array.isArray(sizes) ? sizes : [sizes] };
+  }
+  let sortOption = {};
+  if (sort === "newest") sortOption = { createdAt: -1 };
+  else if (sort === "oldest") sortOption = { createdAt: 1 };
+  else if (sort === "price_asc") sortOption = { price: 1 };
+  else if (sort === "price_desc") sortOption = { price: -1 };
   try {
+    console.log(query, sortOption);
+
     const products = await Product.find(query)
-      .sort({ avgRating: -1 })
+      .sort(sortOption)
       .skip(skip)
       .limit(parseInt(limit));
+    console.log(products.length);
 
-    if (!products) {
+    if (!products.length) {
       return res.status(200).json({
         status: "success",
         data: [],
       });
     }
-    const productsWithTotalPrice = products.map((product) => ({
-      ...product.toObject(),
-      totalPrice: Number(
-        (product.price * (1 - product.discount / 100)).toFixed(0)
-      ),
-    }));
+    const total = await Product.countDocuments(query);
+
     return res.status(200).json({
       status: "success",
-      data: productsWithTotalPrice,
-      total: products?.length,
+      data: products,
+      total,
     });
   } catch (error) {
     return next(error);
@@ -65,32 +86,6 @@ const getProduct = async (req, res, next) => {
   }
 };
 
-const addReview = async (req, res, next) => {
-  const { id } = req.params;
-  const { review, rating } = req.body;
-  const { _id } = req.user;
-  try {
-    const review = await Review.create({
-      product: id,
-      user: _id,
-      review,
-      rating,
-    });
-    await review.save();
-    const product = await Product.findByIdAndUpdate(id, {
-      $push: { reviews: review._id },
-      $inc: { countRating: 1 },
-    });
-    await product.save();
-    res.status(201).json({
-      status: "success",
-      message: "Review added successfully",
-      data: review,
-    });
-  } catch (error) {
-    return next(error);
-  }
-};
 const getSearchSuggestions = async (req, res, next) => {
   const { q } = req.query;
 
@@ -119,4 +114,4 @@ const getSearchSuggestions = async (req, res, next) => {
   }
 };
 
-export { getProducts, getProduct, addReview, getSearchSuggestions };
+export { getProducts, getProduct, getSearchSuggestions };

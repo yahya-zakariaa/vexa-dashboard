@@ -4,6 +4,7 @@ import { connectDB } from "./lib/db.js";
 import authRoutes from "./routes/auth.route.js";
 import productRoutes from "./routes/store/product.route.js";
 import cartRoutes from "./routes/store/cart.route.js";
+import orderRoutes from "./routes/store/order.route.js";
 import categoryRoutes from "./routes/store/category.route.js";
 import admin_productRoutes from "./routes/dashboard/product.route.js";
 import admin_categoryRoutes from "./routes/dashboard/category.route.js";
@@ -22,21 +23,38 @@ app.use(bodyParser.json({ limit: "20mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "20mb" }));
 app.use(express.json());
 app.use(cookieParser());
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3002",
+  "https://vexa-dashboard.vercel.app",
+  "https://vexa-store.vercel.app",
+];
+
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://vexa-dashboard.vercel.app"],
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+app.options("*", cors());
 
 // routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/dashboard/products", admin_productRoutes);
-app.use("/api/dashboard/categories", admin_categoryRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/dashboard/products", admin_productRoutes);
+app.use("/api/dashboard/categories", admin_categoryRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

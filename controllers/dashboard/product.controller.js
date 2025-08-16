@@ -1,4 +1,3 @@
-import { Category } from "../../models/category.model.js";
 import { Product } from "../../models/product.model.js";
 import { uploadToCloudinary } from "../../utils/cloudinary.js";
 
@@ -14,11 +13,12 @@ const createProduct = async (req, res, next) => {
     discount,
     discountType,
     availability,
+    collection,
   } = req.body;
   const uploadedImages = [];
 
   try {
-    const existingProduct = await Product.findOne({ name, description });
+    const existingProduct = await Product.findOne({ name });
 
     if (existingProduct) {
       return res.status(409).json({
@@ -52,16 +52,13 @@ const createProduct = async (req, res, next) => {
       sizes,
       discountType,
       availability: !!availability,
+      collection,
     });
     if (!product)
       return res.status(500).json({
         status: "error",
         message: "Internal Server Error",
       });
-    product.totalPrice = product.calculateTotalPrice(
-      product.price,
-      validatedDiscount
-    );
     await product.save();
     console.log("product:", product);
 
@@ -78,7 +75,7 @@ const getProducts = async (req, res, next) => {
   try {
     const products = await Product.find()
       .populate("category")
-      .sort({ avgReting: -1 });
+      .sort({ avgRating: -1 });
 
     if (!products) {
       return res.status(200).json({
@@ -86,15 +83,10 @@ const getProducts = async (req, res, next) => {
         data: [],
       });
     }
-    const productsWithTotalPrice = products.map((product) => ({
-      ...product.toObject(),
-      totalPrice: Number(
-        (product.price * (1 - product.discount / 100)).toFixed(0)
-      ),
-    }));
+
     return res.status(200).json({
       status: "success",
-      data: productsWithTotalPrice,
+      data: products,
       total: products?.length,
     });
   } catch (error) {
@@ -137,19 +129,21 @@ const updateProduct = async (req, res, next) => {
       discount,
       discountType,
       availability,
-    } = req.body; 
+    } = req.body;
     console.log(req.body);
-    
+
     if (!id) {
       return res.status(400).json({
         status: "fail",
         message: "Missing product ID in URL",
       });
     }
-    
+
     try {
-      if (typeof sizes === "string" && sizes !== undefined) sizes = JSON.parse(sizes);
-      if (typeof images === "string" && images !== undefined) images = JSON.parse(images);
+      if (typeof sizes === "string" && sizes !== undefined)
+        sizes = JSON.parse(sizes);
+      if (typeof images === "string" && images !== undefined)
+        images = JSON.parse(images);
     } catch (err) {
       return res.status(400).json({
         status: "failed",
@@ -213,7 +207,6 @@ const updateProduct = async (req, res, next) => {
       updateData.images = finalImages;
     }
 
-    console.log(updateData);
     if (Object.keys(updateData).length < 1)
       return res.status(400).json({
         status: "fail",
@@ -229,14 +222,6 @@ const updateProduct = async (req, res, next) => {
         message: "Product not found",
       });
     }
-    const validatedDiscount = Math.min(
-      Math.max(updatedProduct.discount || 0, 0),
-      100
-    );
-    updatedProduct.totalPrice = updatedProduct.calculateTotalPrice(
-      updatedProduct.price,
-      validatedDiscount
-    );
     await updatedProduct.save();
     console.log("product updated");
 
@@ -279,23 +264,13 @@ const deleteProduct = async (req, res, next) => {
   }
 };
 
-const searchProducts = async (req, res, next) => {};
-const getReviews = async (req, res, next) => {};
-const getRatings = async (req, res, next) => {};
 const deleteProducts = async (req, res, next) => {};
-const deleteReview = async (req, res, next) => {};
-const deleteReviews = async (req, res, next) => {};
 
 export {
   createProduct,
   updateProduct,
   deleteProduct,
   deleteProducts,
-  deleteReview,
-  deleteReviews,
-  getReviews,
-  getRatings,
   getProducts,
   getProduct,
-  searchProducts,
 };

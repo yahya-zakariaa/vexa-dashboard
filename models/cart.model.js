@@ -1,27 +1,42 @@
 import mongoose from "mongoose";
 import { Product } from "./product.model.js";
 
+const cartItemSchema = new mongoose.Schema({
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product",
+    required: [true, "Product is required"],
+  },
+  quantity: {
+    type: Number,
+    default: 1,
+    min: [1, "Quantity must be at least 1"],
+  },
+  price: {
+    type: Number,
+    required: [true, "Price is required"],
+  },
+  size: {
+    type: String,
+    enum: ["XS", "S", "M", "L", "XL", "XXL"],
+  },
+});
+
 const cartSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
-  items: [
-    {
-      product: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: true,
+  items: {
+    type: [cartItemSchema],
+    validate: {
+      validator: function (val) {
+        return val.length > 0;
       },
-      quantity: { type: Number, default: 1 },
-      size: {
-        type: String,
-        enum: ["XS", "S", "M", "L", "XL", "XXL"],
-      },
-      color: { type: String },
+      message: "Cart must have at least one item.",
     },
-  ],
+  },
   totalPrice: {
     type: Number,
     required: true,
@@ -30,17 +45,32 @@ const cartSchema = new mongoose.Schema({
 });
 
 cartSchema.pre("save", async function (next) {
-  let total = 0;
+  try {
+    const productIds = this.items.map((item) => item.product.toString());
+    const products = await Product.find({ _id: { $in: productIds } });
 
-  for (let item of this.items) {
-    const product = await mongoose.model("Product").findById(item.product);
-    if (product) {
-      total += product.totalPrice * item.quantity;
+    const productMap = new Map();
+    products.forEach((product) => {
+      productMap.set(product._id.toString(), product);
+    });
+
+    let total = 0;
+
+    for (let item of this.items) {
+      const product = productMap.get(item.product.toString());
+      if (product) {
+        item.price = product.totalPrice; 
+        total += product.totalPrice * item.quantity;
+      } else {
+        return next(new Error("One of the products does not exist"));
+      }
     }
-  }
 
-  this.totalPrice = total;
-  next();
+    this.totalPrice = total;
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 export const Cart = mongoose.model("Cart", cartSchema);

@@ -1,6 +1,6 @@
 import slugify from "slugify";
 import { Category } from "../../models/category.model.js";
-import { uploadToCloudinary } from "../../utils/cloudinary.js"; // Ensure this is implemented
+import { uploadToCloudinary } from "../../utils/cloudinary.js";
 
 const createCategory = async (req, res, next) => {
   try {

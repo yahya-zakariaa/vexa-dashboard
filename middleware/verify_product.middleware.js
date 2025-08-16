@@ -1,5 +1,6 @@
 import { validationResult } from "express-validator";
 import { Category } from "../models/category.model.js";
+import slugify from "slugify";
 
 export const verify_product = async (req, res, next) => {
   console.log(" start verify_product");
@@ -30,18 +31,22 @@ export const verify_product = async (req, res, next) => {
       discount,
       discountType,
     } = req.body;
-    if (discountType && !discount) {
-      return res.status(400).json({
-        status: "fail",
-        message: "Can't add discount type without discount amount",
-      });
-    }
+    if (discountType !== "none") {
+      if (discountType && !discount) {
+        return res.status(400).json({
+          status: "fail",
+          message: "Can't add discount type without discount amount",
+        });
+      }
 
-    if (discount && !discountType) {
-      return res.status(400).json({
-        status: "fail",
-        message: "Can't add discount amount without discount type",
-      });
+      if (discount && !discountType) {
+        return res.status(400).json({
+          status: "fail",
+          message: "Can't add discount amount without discount type",
+        });
+      }
+    } else {
+      discount = 0;
     }
 
     price = Number(price);
@@ -63,7 +68,7 @@ export const verify_product = async (req, res, next) => {
     if (!category || typeof category !== "string") {
       return res.status(400).json({ message: "Invalid category" });
     }
-
+    req.body.collection = slugify(category, { lower: true });
     let categoryDoc = await Category.findOne({ name: category }).select("_id");
     if (!categoryDoc) {
       const newCategory = await Category.create({ name: category });

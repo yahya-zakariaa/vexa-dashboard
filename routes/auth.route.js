@@ -3,8 +3,6 @@ import {
   signup,
   login,
   logout,
-  getOTP,
-  sendOTP,
   checkAuth,
 } from "../controllers/store/auth.controller.js";
 import {
@@ -12,15 +10,21 @@ import {
   adminLogout,
 } from "../controllers/dashboard/auth.controller.js";
 import { check_auth } from "../middleware/auth.middleware.js";
+import {
+  sendOTP,
+  verifyOTP,
+  updatePassword,
+} from "../controllers/store/otp.controller.js";
 
 const router = express.Router();
 router.post("/dashboard/login", adminLogin);
 router.post("/dashboard/logout", check_auth("admin"), adminLogout);
+router.get("/:adminId", checkAuth);
+
 router.post("/signup", signup);
 router.post("/login", login);
 router.post("/logout", logout);
-router.get("/:adminId", checkAuth);
-router.post("/password-recovery", sendOTP);
-router.post("/send-otp-code", getOTP);
-
+router.post("/recovery/send-otp", sendOTP);
+router.post("/recovery/verify-otp", verifyOTP);
+router.post("/recovery/reset-password", updatePassword);
 export default router;

@@ -1,16 +1,17 @@
+import { Product } from "../../models/product.model.js";
 import User from "../../models/user.model.js";
 import { Cart } from "./../../models/cart.model.js";
 
 const addToCart = async (req, res, next) => {
   try {
     const { id: productId } = req.params;
-    let { quantity = 1, size, color } = req.body;
+    let { quantity = 1, size } = req.body;
     const { id } = req.user;
 
     if (!productId) {
       return res.status(400).json({
         status: "error",
-        message: "Missing required field: please provide product id",
+        message: "Please provide product id",
       });
     }
 
@@ -21,7 +22,7 @@ const addToCart = async (req, res, next) => {
         message: "Quantity must be a positive number",
       });
     }
-
+    const product = await Product.findById(productId);
     let cart = await Cart.findOne({ user: id });
 
     if (!cart) {
@@ -35,16 +36,18 @@ const addToCart = async (req, res, next) => {
     }
 
     const itemIndex = cart.items.findIndex(
-      (item) =>
-        item.product.toString() === productId &&
-        item.size === size &&
-        item.color === color
+      (item) => item.product.toString() === productId && item.size === size
     );
 
     if (itemIndex > -1) {
       cart.items[itemIndex].quantity += quantity;
     } else {
-      cart.items.push({ product: productId, quantity, size, color });
+      cart.items.push({
+        product: productId,
+        quantity,
+        size,
+        price: product.totalPrice,
+      });
     }
 
     await cart.save();
@@ -70,7 +73,7 @@ const getCart = async (req, res, next) => {
         user: id,
         items: [],
       });
-      let user = await User.findByIdAndUpdate(id, {
+      await User.findByIdAndUpdate(id, {
         cart: cart._id,
       });
     }
@@ -87,7 +90,7 @@ const getCart = async (req, res, next) => {
 };
 const updateProductInCart = async (req, res, next) => {
   const { id: productId } = req.params;
-  const { size, quantity, color } = req.body;
+  const { size, quantity } = req.body;
   const { id } = req.user;
 
   if (!productId) {
@@ -121,7 +124,6 @@ const updateProductInCart = async (req, res, next) => {
       cart.items.splice(itemIndex, 1);
     } else {
       if (typeof size !== "undefined") cart.items[itemIndex].size = size;
-      if (typeof color !== "undefined") cart.items[itemIndex].color = color;
       if (typeof quantity !== "undefined")
         cart.items[itemIndex].quantity = quantity;
     }

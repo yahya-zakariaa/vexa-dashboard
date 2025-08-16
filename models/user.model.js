@@ -40,10 +40,12 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Cart",
     },
-    orders: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Order",
-    },
+    orders: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Order",
+      },
+    ],
     role: {
       type: String,
       enum: ["user", "admin"],
@@ -63,6 +65,20 @@ userSchema.pre("save", async function (next) {
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+userSchema.pre("findOneAndUpdate", async function (next) {
+  const update = this.getUpdate();
+
+  if (!update?.password) return next();
+
+  try {
+    const salt = await bcrypt.genSalt(10);
+    update.password = await bcrypt.hash(update.password, salt);
+    this.setUpdate(update);
     next();
   } catch (error) {
     next(error);
