@@ -12,10 +12,6 @@ const cartItemSchema = new mongoose.Schema({
     default: 1,
     min: [1, "Quantity must be at least 1"],
   },
-  price: {
-    type: Number,
-    required: [true, "Price is required"],
-  },
   size: {
     type: String,
     enum: ["XS", "S", "M", "L", "XL", "XXL"],
@@ -30,17 +26,6 @@ const cartSchema = new mongoose.Schema({
   },
   items: {
     type: [cartItemSchema],
-    validate: {
-      validator: function (val) {
-        return val.length > 0;
-      },
-      message: "Cart must have at least one item.",
-    },
-  },
-  totalPrice: {
-    type: Number,
-    required: true,
-    default: 0,
   },
 });
 
@@ -59,7 +44,7 @@ cartSchema.pre("save", async function (next) {
     for (let item of this.items) {
       const product = productMap.get(item.product.toString());
       if (product) {
-        item.price = product.totalPrice; 
+        item.price = product.totalPrice;
         total += product.totalPrice * item.quantity;
       } else {
         return next(new Error("One of the products does not exist"));

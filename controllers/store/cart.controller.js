@@ -16,23 +16,41 @@ const addToCart = async (req, res, next) => {
     }
 
     quantity = Number(quantity);
+
     if (isNaN(quantity) || quantity <= 0) {
       return res.status(400).json({
         status: "error",
         message: "Quantity must be a positive number",
       });
     }
+    if (size && !["XS", "S", "M", "L", "XL", "XXL"].includes(size)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Size must be one of [xs,sm,m,l,xl,xxl]",
+      });
+    }
+
     const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({
+        status: "error",
+        message: "Product not found",
+      });
+    }
+
+    if (product.stock === 0 || !product.availability) {
+      return res.status(400).json({
+        status: "error",
+        message: "Product is not available",
+      });
+    }
+
     let cart = await Cart.findOne({ user: id });
 
     if (!cart) {
-      cart = await Cart.create({
-        user: id,
-        items: [],
-      });
-      let user = await User.findByIdAndUpdate(id, {
-        cart: cart._id,
-      });
+      cart = await Cart.create({ user: id, items: [] });
+      await User.findByIdAndUpdate(id, { cart: cart._id });
     }
 
     const itemIndex = cart.items.findIndex(
@@ -40,8 +58,20 @@ const addToCart = async (req, res, next) => {
     );
 
     if (itemIndex > -1) {
+      if (cart.items[itemIndex].quantity + quantity > product.stock) {
+        return res.status(400).json({
+          status: "error",
+          message: "Not enough stock available",
+        });
+      }
       cart.items[itemIndex].quantity += quantity;
     } else {
+      if (product.stock < quantity) {
+        return res.status(400).json({
+          status: "error",
+          message: "Product is not available",
+        });
+      }
       cart.items.push({
         product: productId,
         quantity,
@@ -56,7 +86,7 @@ const addToCart = async (req, res, next) => {
     return res.status(200).json({
       status: "success",
       message: "Product added to cart",
-      data: cart.items,
+      data: cart,
     });
   } catch (error) {
     return next(error);
@@ -77,12 +107,31 @@ const getCart = async (req, res, next) => {
         cart: cart._id,
       });
     }
-
     await cart.populate("items.product");
 
+    const cartWithPrices = cart.items.map((item) => {
+      const price = item.product.totalPrice;
+      return {
+        productId: item.product._id,
+        name: item.product.name,
+        images: item.product.images,
+        size: item.size,
+        quantity: item.quantity,
+        price,
+        total: price * item.quantity,
+      };
+    });
+    const totalPrice = cart.items.reduce((acc, item) => {
+      return acc + item.product.totalPrice * item.quantity;
+    }, 0);
     return res.status(200).json({
       status: "success",
-      data: cart.items || [],
+      data: {
+        cartId: cart._id,
+        items: cartWithPrices,
+        totalPrice,
+        totalItems: cart.items.length,
+      },
     });
   } catch (error) {
     return next(error);

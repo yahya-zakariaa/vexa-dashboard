@@ -91,18 +91,17 @@ const getSearchSuggestions = async (req, res, next) => {
 
   try {
     const query = {
-      avgRating: { $gte: 0 },
-      stock: { $gte: 1 },
+      stock: { $gt: 1 },
+      availability: true,
     };
 
-    if (q) {
-      query.name = { $regex: q, $options: "i" };
+    if (q && q.trim() !== "") {
+      query.name = { $regex: `^${q}`, $options: "i" };
     }
-
-    const products = await Product.find(query)
-      .sort({ avgRating: -1 })
+    let products = await Product.find(query)
+      .sort({ createdAt: -1 })
       .limit(5)
-      .select("name _id avgRating images");
+      .select("name _id images price stock collection");
 
     res.status(200).json({
       status: "success",
